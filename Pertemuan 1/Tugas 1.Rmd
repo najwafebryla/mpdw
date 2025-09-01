@@ -1,1 +1,311 @@
+## Library
+
+```{r}
+library("forecast")
+library("graphics")
+library("TTR")
+library("TSA")
+```
+
+## Impor Data
+
+```{r}
+library(rio)
+data <-import("https://raw.githubusercontent.com/najwafebryla/mpdw/refs/heads/main/Pertemuan%201/AI%20Financial%20Market%20Daily%20Realistic%20Synthetic.csv")
+```
+## Eksplorasi Data
+
+```{r}
+View(data)
+str(data)
+dim(data)
+```
+```{r}
+data.ts <- ts(data$AI_Revenue_USD_Mn)
+```
+
+### Ringkasan Data
+
+```{r}
+summary(data.ts)
+```
+### Plot Data Deret Waktu
+
+```{r}
+ts.plot(data.ts, xlab="Date", ylab="Revenue USD", 
+        main = "Time Series Plot")
+points(data.ts)
+```
+
+## Single Moving Average (SMA)
+
+### Pembagian Data
+
+```{r}
+training_ma <- data[1:104,]
+testing_ma <- data[105:131,]
+train_ma.ts <- ts(training_ma$AI_Revenue_USD_Mn)
+test_ma.ts <- ts(testing_ma$AI_Revenue_USD_Mn)
+```
+
+### Eksplorasi Data
+
+```{r}
+#eksplorasi keseluruhan data
+plot(data.ts, col="red",main="Plot semua data")
+points(data.ts)
+
+#eksplorasi data latih
+plot(train_ma.ts, col="blue",main="Plot data latih")
+points(train_ma.ts)
+
+#eksplorasi data uji
+plot(test_ma.ts, col="blue",main="Plot data uji")
+points(test_ma.ts)
+```
+
+```{r}
+library(ggplot2)
+ggplot() + 
+  geom_line(data = training_ma, aes(x = Date, y = AI_Revenue_USD_Mn, col = "Data Latih")) +
+  geom_line(data = testing_ma, aes(x = Date, y = AI_Revenue_USD_Mn, col = "Data Uji")) +
+  labs(x = "Date", y = "Revenue USD", color = "Legend") +
+  scale_colour_manual(name="Keterangan:", breaks = c("Data Latih", "Data Uji"),
+                      values = c("blue", "red")) + 
+  theme_bw() + theme(legend.position = "bottom",
+                     plot.caption = element_text(hjust=0.5, size=12))
+```
+```{r}
+data.sma <- SMA(train_ma.ts, n=4)
+data.sma
+```
+
+```{r}
+data.ramal<-c(NA,data.sma)
+data.ramal #forecast 1 periode ke depan
+```
+```{r}
+data.gab<-cbind(aktual=c(train_ma.ts,rep(NA,27)),pemulusan=c(data.sma,rep(NA,27)),ramalan=c(data.ramal,rep(data.ramal[length(data.ramal)],26)))
+data.gab #forecast 27 periode ke depan
+```
+```{r}
+ts.plot(data.ts, xlab="Date", ylab="Revenue USD", main= "SMA N=4 Data Revenue USD")
+points(data.ts)
+lines(data.gab[,2],col="green",lwd=2)
+lines(data.gab[,3],col="red",lwd=2)
+legend("topleft",c("data aktual","data pemulusan","data peramalan"), lty=8, col=c("black","green","red"), cex=0.4)
+```
+
+```{r}
+#Menghitung nilai keakuratan data latih
+error_train.sma = train_ma.ts-data.ramal[1:length(train_ma.ts)]
+SSE_train.sma = sum(error_train.sma[5:length(train_ma.ts)]^2)
+MSE_train.sma = mean(error_train.sma[5:length(train_ma.ts)]^2)
+MAPE_train.sma = mean(abs((error_train.sma[5:length(train_ma.ts)]/train_ma.ts[5:length(train_ma.ts)])*100))
+
+akurasi_train.sma <- matrix(c(SSE_train.sma, MSE_train.sma, MAPE_train.sma))
+row.names(akurasi_train.sma)<- c("SSE", "MSE", "MAPE")
+colnames(akurasi_train.sma) <- c("Akurasi m = 4")
+akurasi_train.sma
+```
+```{r}
+#Menghitung nilai keakuratan data uji
+error_test.sma = test_ma.ts-data.gab[105:131,3]
+SSE_test.sma = sum(error_test.sma^2)
+MSE_test.sma = mean(error_test.sma^2)
+MAPE_test.sma = mean(abs((error_test.sma/test_ma.ts*100)))
+
+akurasi_test.sma <- matrix(c(SSE_test.sma, MSE_test.sma, MAPE_test.sma))
+row.names(akurasi_test.sma)<- c("SSE", "MSE", "MAPE")
+colnames(akurasi_test.sma) <- c("Akurasi m = 4")
+akurasi_test.sma
+```
+
+## Single Exponential Smoothing
+
+### Pembagian Data
+
+```{r}
+#membagi training dan testing
+training<-data[1:104,]
+testing<-data[105:131,]
+train.ts <- ts(training$AI_Revenue_USD_Mn)
+test.ts <- ts(testing$AI_Revenue_USD_Mn)
+```
+
+### Eksplorasi
+
+```{r}
+#eksplorasi data
+plot(data.ts, col="black",main="Plot semua data")
+points(data.ts)
+
+plot(train.ts, col="red",main="Plot data latih")
+points(train.ts)
+
+plot(test.ts, col="blue",main="Plot data uji")
+points(test.ts)
+```
+
+```{r}
+library(ggplot2)
+ggplot() + 
+  geom_line(data = training_ma, aes(x = Date, y = AI_Revenue_USD_Mn, col = "Data Latih")) +
+  geom_line(data = testing_ma, aes(x = Date, y = AI_Revenue_USD_Mn, col = "Data Uji")) +
+  labs(x = "Date", y = "Revenue USD", color = "Legend") +
+  scale_colour_manual(name="Keterangan:", breaks = c("Data Latih", "Data Uji"),
+                      values = c("blue", "red")) + 
+  theme_bw() + theme(legend.position = "bottom",
+                     plot.caption = element_text(hjust=0.5, size=12))
+```
+
+### SES
+
+```{r}
+#Cara 1 (fungsi ses)
+ses.1 <- ses(train.ts, h = 10, alpha = 0.2)
+plot(ses.1)
+ses.1
+
+ses.2<- ses(train.ts, h = 10, alpha = 0.7)
+plot(ses.2)
+ses.2
+```
+
+```{r}
+autoplot(ses.1) +
+  autolayer(fitted(ses.1), series="Fitted") +
+  ylab("Revenue USD") + xlab("Date")
+```
+
+```{r}
+#Cara 2 (fungsi Holtwinter)
+ses1<- HoltWinters(train.ts, gamma = FALSE, beta = FALSE, alpha = 0.2)
+plot(ses1)
+
+#ramalan
+ramalan1<- forecast(ses1, h=40)
+ramalan1
+
+ses2<- HoltWinters(train.ts, gamma = FALSE, beta = FALSE, alpha = 0.7)
+plot(ses2)
+
+#ramalan
+ramalan2<- forecast(ses2, h=40)
+ramalan2
+```
+
+```{r}
+#SES
+ses.opt <- ses(train.ts, h = 10, alpha = NULL)
+plot(ses.opt)
+ses.opt
+
+#Lamda Optimum Holt Winter
+sesopt<- HoltWinters(train.ts, gamma = FALSE, beta = FALSE,alpha = NULL)
+sesopt
+plot(sesopt)
+
+#ramalan
+ramalanopt<- forecast(sesopt, h=40)
+ramalanopt
+```
+
+### Akurasi Data Latih
+
+```{r}
+#Keakuratan Metode
+#Pada data training
+SSE1<-ses1$SSE
+MSE1<-ses1$SSE/length(train.ts)
+RMSE1<-sqrt(MSE1)
+
+akurasi1 <- matrix(c(SSE1,MSE1,RMSE1))
+row.names(akurasi1)<- c("SSE", "MSE", "RMSE")
+colnames(akurasi1) <- c("Akurasi lamda=0.2")
+akurasi1
+
+SSE2<-ses2$SSE
+MSE2<-ses2$SSE/length(train.ts)
+RMSE2<-sqrt(MSE2)
+
+akurasi2 <- matrix(c(SSE2,MSE2,RMSE2))
+row.names(akurasi2)<- c("SSE", "MSE", "RMSE")
+colnames(akurasi2) <- c("Akurasi lamda=0.7")
+akurasi2
+
+#Cara Manual
+fitted1<-ramalan1$fitted
+sisaan1<-ramalan1$residuals
+head(sisaan1)
+
+resid1<-training$AI_Revenue_USD_Mn-ramalan1$fitted
+head(resid1)
+```
+
+```{r}
+#Cara Manual
+SSE.1=sum(sisaan1[2:length(train.ts)]^2)
+SSE.1
+
+MSE.1 = SSE.1/length(train.ts)
+MSE.1
+
+MAPE.1 = sum(abs(sisaan1[2:length(train.ts)]/train.ts[2:length(train.ts)])*
+               100)/length(train.ts)
+MAPE.1
+
+akurasi.1 <- matrix(c(SSE.1,MSE.1,MAPE.1))
+row.names(akurasi.1)<- c("SSE", "MSE", "MAPE")
+colnames(akurasi.1) <- c("Akurasi lamda=0.2")
+akurasi.1
+
+fitted2<-ramalan2$fitted
+sisaan2<-ramalan2$residuals
+head(sisaan2)
+
+resid2<-training$AI_Revenue_USD_Mn-ramalan2$fitted
+head(resid2)
+
+SSE.2=sum(sisaan2[2:length(train.ts)]^2)
+SSE.2
+
+MSE.2 = SSE.2/length(train.ts)
+MSE.2
+
+MAPE.2 = sum(abs(sisaan2[2:length(train.ts)]/train.ts[2:length(train.ts)])*
+               100)/length(train.ts)
+MAPE.2
+
+akurasi.2 <- matrix(c(SSE.2,MSE.2,MAPE.2))
+row.names(akurasi.2)<- c("SSE", "MSE", "MAPE")
+colnames(akurasi.2) <- c("Akurasi lamda=0.7")
+akurasi.2
+```
+
+### Akurasi Data Uji
+
+```{r}
+selisih1<-ramalan1$mean-testing$AI_Revenue_USD_Mn
+SSEtesting1<-sum(selisih1^2)
+MSEtesting1<-SSEtesting1/length(testing)
+
+selisih2<-ramalan2$mean-testing$AI_Revenue_USD_Mn
+SSEtesting2<-sum(selisih2^2)
+MSEtesting2<-SSEtesting2/length(testing)
+
+selisihopt<-ramalanopt$mean-testing$AI_Revenue_USD_Mn
+SSEtestingopt<-sum(selisihopt^2)
+MSEtestingopt<-SSEtestingopt/length(testing)
+
+akurasitesting1 <- matrix(c(SSEtesting1,SSEtesting2,SSEtestingopt))
+row.names(akurasitesting1)<- c("SSE1", "SSE2", "SSEopt")
+akurasitesting1
+
+akurasitesting2 <- matrix(c(MSEtesting1,MSEtesting2,MSEtestingopt))
+row.names(akurasitesting2)<- c("MSE1", "MSE2", "MSEopt")
+akurasitesting2
+```
+
+
 
