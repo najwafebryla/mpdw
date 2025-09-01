@@ -323,3 +323,12 @@ akurasitesting2
 3. Dapat disimpulkan bahwa Model Optimal adalah model terbaik, tetapi Model 1 sudah cukup baik karena hasilnya sangat mendekati model optimal, sedangkan Model 2 relatif lebih buruk dibandingkan kedua model lainnya.
 
 
+```{r}
+accuracy(ramalanopt,testing$AI_Revenue_USD_Mn)
+```
+
+Nilai MAPE data latih pada metode pemulusan SES sebesar 0.30% < 10%, nilai ini dapat dikategorikan sebagai nilai akurasi yang sangat baik. 
+Nilai MAPE data uji pada metode pemulusan SES sebesar 0.35% < 10%, nilai ini dapat dikategorikan sebagai nilai akurasi yang sangat baik.
+
+## Kesimpulan
+Kedua metode menghasilkan akurasi sangat baik karena semua MAPE < 10%. SES lebih unggul sedikit dibanding SMA baik pada data latih (0.30% vs 0.31%) maupun data uji (0.35% vs 0.38%). Hal ini menunjukkan bahwa SES lebih efisien dalam menangkap pola tren dibanding SMA, yang cenderung merata-ratakan data tanpa mempertimbangkan bobot waktu. Perbedaan persentase memang kecil, tapi SES bisa dipilih sebagai metode yang lebih optimal karena konsistensi akurasinya.
