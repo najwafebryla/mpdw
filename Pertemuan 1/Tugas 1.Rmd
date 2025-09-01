@@ -36,10 +36,13 @@ ts.plot(data.ts, xlab="Date", ylab="Revenue USD",
         main = "Time Series Plot")
 points(data.ts)
 ```
+Plot tersebut menunjukkan data stasioner tanpa tren sehingga cocok dengan metode Single Moving Average (SMA) dan Single Exponential Smoothing (SES).
 
 ## Single Moving Average (SMA)
 
 ### Pembagian Data
+
+Pembagian data latih dan data uji dilakukan dengan perbandingan 80% data latih dan 20% data uji.
 
 ```{r}
 training_ma <- data[1:104,]
@@ -49,6 +52,8 @@ test_ma.ts <- ts(testing_ma$AI_Revenue_USD_Mn)
 ```
 
 ### Eksplorasi Data
+
+Eksplorasi data dilakukan pada keseluruhan data, data latih serta data uji menggunakan plot data deret waktu.
 
 ```{r}
 #eksplorasi keseluruhan data
@@ -63,6 +68,8 @@ points(train_ma.ts)
 plot(test_ma.ts, col="blue",main="Plot data uji")
 points(test_ma.ts)
 ```
+
+#### Eksplorasi dengan GGPlot
 
 ```{r}
 library(ggplot2)
@@ -108,6 +115,8 @@ row.names(akurasi_train.sma)<- c("SSE", "MSE", "MAPE")
 colnames(akurasi_train.sma) <- c("Akurasi m = 4")
 akurasi_train.sma
 ```
+Nilai MAPE data latih pada metode pemulusan SMA sebesar 0.31% < 10%, nilai ini dapat dikategorikan sebagai nilai akurasi yang sangat baik. 
+
 ```{r}
 #Menghitung nilai keakuratan data uji
 error_test.sma = test_ma.ts-data.gab[105:131,3]
@@ -120,6 +129,7 @@ row.names(akurasi_test.sma)<- c("SSE", "MSE", "MAPE")
 colnames(akurasi_test.sma) <- c("Akurasi m = 4")
 akurasi_test.sma
 ```
+Nilai MAPE data uji pada metode pemulusan SMA sebesar 0.38% < 10%, nilai ini dapat dikategorikan sebagai nilai akurasi yang sangat baik.
 
 ## Single Exponential Smoothing
 
@@ -209,14 +219,6 @@ plot(sesopt)
 #ramalan
 ramalanopt<- forecast(sesopt, h=27)
 ramalanopt
-```
-
-```{r}
-length(ramalan1$mean)
-length(ramalan2$mean)
-length(ramalanopt$mean)
-length(testing$AI_Revenue_USD_Mn)
-
 ```
 
 ### Akurasi Data Latih
@@ -314,6 +316,10 @@ akurasitesting2 <- matrix(c(MSEtesting1,MSEtesting2,MSEtestingopt))
 row.names(akurasitesting2)<- c("MSE1", "MSE2", "MSEopt")
 akurasitesting2
 ```
+1. Berdasarkan hasil perhitungan, dapat dilihat bahwa nilai SSE pada Model 1 (9.108) lebih kecil dibandingkan dengan SSE pada Model 2 (9.502), sehingga Model 1 dapat dikatakan lebih baik daripada Model 2. Nilai SSE optimal (8.789) memang merupakan yang terkecil, namun selisihnya dengan Model 1 sangat kecil sehingga Model 1 sudah cukup representatif dan mendekati model optimal
 
+2. Hal yang sama juga terlihat pada MSE, di mana MSE Model 1 (4.554) lebih kecil dibandingkan dengan MSE Model 2 (4.751), sehingga Model 1 lebih baik. Sementara itu, MSE optimal (4.394) memiliki nilai terkecil, namun selisihnya dengan Model 1 juga sangat tipis.
+
+3. Dapat disimpulkan bahwa Model Optimal adalah model terbaik, tetapi Model 1 sudah cukup baik karena hasilnya sangat mendekati model optimal, sedangkan Model 2 relatif lebih buruk dibandingkan kedua model lainnya.
 
 
