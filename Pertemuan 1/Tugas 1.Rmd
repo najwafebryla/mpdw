@@ -184,14 +184,14 @@ ses1<- HoltWinters(train.ts, gamma = FALSE, beta = FALSE, alpha = 0.2)
 plot(ses1)
 
 #ramalan
-ramalan1<- forecast(ses1, h=40)
+ramalan1<- forecast(ses1, h=27)
 ramalan1
 
 ses2<- HoltWinters(train.ts, gamma = FALSE, beta = FALSE, alpha = 0.7)
 plot(ses2)
 
 #ramalan
-ramalan2<- forecast(ses2, h=40)
+ramalan2<- forecast(ses2, h=27)
 ramalan2
 ```
 
@@ -207,8 +207,16 @@ sesopt
 plot(sesopt)
 
 #ramalan
-ramalanopt<- forecast(sesopt, h=40)
+ramalanopt<- forecast(sesopt, h=27)
 ramalanopt
+```
+
+```{r}
+length(ramalan1$mean)
+length(ramalan2$mean)
+length(ramalanopt$mean)
+length(testing$AI_Revenue_USD_Mn)
+
 ```
 
 ### Akurasi Data Latih
