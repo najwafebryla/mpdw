@@ -134,7 +134,7 @@ text(x=0.316, y=0.2421586, labels = "rho=0.316", cex = 0.8)
 ```
 
 ```{r}
-model_hl <- hildreth.lu(dt_ipm$ipm, jabar$tahun, rho = 0.316)
+model_hl <- hildreth.lu(jabar$IPM, jabar$tahun, rho = 0.316)
 summary(model_hl)
 ```
 ```{r}
