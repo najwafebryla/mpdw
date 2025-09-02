@@ -1,1 +1,170 @@
+---
+title: "Tugas 2 MPDW"
+author: "Najwa Febryla Adyta"
+date: "2025-09-02"
+output: html_document
+---
 
+## Library
+
+```{r}
+library(lmtest) 
+library(orcutt) 
+library(HoRM) 
+```
+
+
+```{r}
+library(rio)
+jabar <-import("https://raw.githubusercontent.com/najwafebryla/mpdw/refs/heads/main/Pertemuan%202/Data%20IPM%20Jabar.csv")
+```
+
+## Eksplorasi Data
+
+```{r}
+View(jabar)
+str(jabar)
+dim(jabar)
+```
+
+```{r}
+jabar.ts <- ts(jabar$IPM)
+```
+
+### Ringkasan Data
+
+```{r}
+summary(jabar.ts)
+```
+### Plot Data Deret Waktu
+
+```{r}
+ts.plot(jabar.ts, xlab="Tahun", ylab="IPM", 
+        main = "Time Series Plot")
+points(jabar.ts)
+```
+
+## Membuat Model Awal
+
+```{r}
+model_awal <- lm(IPM ~ tahun, data = jabar)
+summary(model_awal)
+```
+## Diagnosis (Investigasi Sisaan)
+
+### Diagnosis Visual
+
+```{r}
+# Ambil sisaan dari model
+sisaan_awal <- residuals(model_awal)
+
+# Plot sisaan terhadap waktu
+plot(jabar$tahun, sisaan_awal, type="o", pch=20, col="red",
+     main="Plot Sisaan vs Waktu", xlab="Tahun", ylab="Sisaan")
+abline(h=0, lty=2) # Garis referensi di y=0
+```
+### Diagnosis Formal (Uji Durbin-Watson)
+
+```{r}
+dwtest(model_awal)
+```
+P-value yang dihasilkan sebesar 0,04632, lebih kecil dari tingkat signifikansi 0,05. Oleh karena itu, H₀ ditolak. Hal ini menunjukkan adanya bukti yang cukup kuat bahwa model mengalami autokorelasi.
+
+## Penanganan (Menyembuhkan Model)
+
+### Cochrane-Orcutt
+
+```{r}
+model_co <- cochrane.orcutt(model_awal)
+summary(model_co)
+
+# rho paling optimum
+rho <- model_co$rho
+cat("Rho optimum:", rho)
+```
+
+```{r}
+ipm.trans <- jabar$IPM[-1] - jabar$IPM[-10]*rho
+
+tahun.trans <- jabar$tahun[-1] - jabar$tahun[-10]*rho
+model_co_manual <- lm(ipm.trans~tahun.trans)
+
+b0_co_manual <- coef(model_co_manual)[1]/(1-rho)
+b1_co_manual <- coef(model_co_manual)[2]
+cat("Koefisien manual Cochrane-Orcutt:\n")
+cat("b0:", b0_co_manual, "\n")
+cat("b1:", b1_co_manual, "\n")
+```
+### Hildreth-Lu
+
+```{r}
+#Penanganan Autokorelasi Hildreth lu
+# Hildreth-Lu
+hildreth.lu.func<- function(r, model){
+  x <- model.matrix(model)[,-1]
+  y <- model.response(model.frame(model))
+  n <- length(y)
+  t <- 2:n
+  y <- y[t]-r*y[t-1]
+  x <- x[t]-r*x[t-1]
+  
+  return(lm(y~x))
+}
+
+#Pencariab rho yang meminimumkan SSE
+r <- c(seq(0.1,0.9, by= 0.1))
+tab <- data.frame("rho" = r, "SSE" = sapply(r, function(i){deviance(hildreth.lu.func(i, model_awal))}))
+round(tab, 4)
+```
+
+Pada hasil di atas terlihat ρminimum ketika 0.3. Namun, hasil tersebut masih kurang teliti sehingga akan dicari kembali ρ yang lebih optimum dengan ketelitian yang lebih. Jika sebelumnya jarak antar ρ yang dicari adalah 0.1, kali ini jarak antar ρ adalah 0.001 dan dilakukan pada selang 0.2 sampai dengan 0.5.
+
+```{r}
+rOpt <- seq(0.2,0.5, by= 0.001)
+tabOpt <- data.frame("rho" = rOpt, "SSE" = sapply(rOpt, function(i){deviance(hildreth.lu.func(i, model_awal))}))
+head(tabOpt[order(tabOpt$SSE),])
+```
+
+```{r}
+#Grafik SSE optimum
+par(mfrow = c(1,1))
+plot(tab$SSE ~ tab$rho , type = "l", xlab = "Rho", ylab = "SSE")
+abline(v = tabOpt[tabOpt$SSE==min(tabOpt$SSE),"rho"], lty = 2, col="red",lwd=2)
+text(x=0.316, y=0.2421586, labels = "rho=0.316", cex = 0.8)
+```
+
+```{r}
+model_hl <- hildreth.lu(dt_ipm$ipm, jabar$tahun, rho = 0.316)
+summary(model_hl)
+```
+```{r}
+#Transformasi Balik
+cat("y = ", coef(model_hl)[1]/(1-0.316), "+", coef(model_hl)[2],"x", sep = "")
+```
+```{r}
+#Deteksi autokorelasi
+dwtest(model_hl)
+```
+## Evaluasi Akhir
+
+```{r}
+# Menghitung SSE untuk setiap model secara manual
+sse_awal <- sum(residuals(model_awal)^2)
+sse_co <- sum(residuals(model_co)^2)
+sse_hl <- sum(residuals(model_hl)^2)
+
+# Membuat tabel perbandingan
+data.frame(
+  Metode = c("Model Awal (Sakit)", "Cochrane-Orcutt (Sehat)", "Hildreth-Lu (Sehat)"),
+  SSE = c(sse_awal, sse_co, sse_hl),
+  DW_Statistic = c(dwtest(model_awal)$statistic, model_co$DW[3], dwtest(model_hl)$statistic)
+)
+```
+
+**Kesimpulan Investigasi:**
+
+-   Baik metode Cochrane-Orcutt maupun Hildreth-Lu berhasil menurunkan SSE model, artinya model yang baru lebih akurat.
+
+-   Keduanya juga berhasil menghilangkan autokorelasi, yang ditunjukkan oleh statistik D-W yang mendekati 2.
+
+-   Model akhir yang seharusnya kita gunakan adalah salah satu dari model yang telah ditangani, karena estimasi koefisien dan uji signifikansinya sekarang jauh lebih dapat dipercaya.
