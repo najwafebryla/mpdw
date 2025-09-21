@@ -122,6 +122,7 @@ mape.koyck #data test
 #akurasi data training
 GoF(model.koyck)
 ```
+
 Model tersebut merupakan model yang sangat baik dengan nilai MAPE yang kurang dari 10%.
 
 # MODEL DISTRIBUTED LAG
@@ -134,6 +135,7 @@ summary(model.dlm)
 AIC(model.dlm)
 BIC(model.dlm)
 ```
+
 Dari hasil diatas, didapat bahwa $P-value$ dari intercept dan $x_{t-2}<0.05$. Hal ini menunjukkan bahwa intercept dan $x_{t-2}$ berpengaruh signifikan terhadap $y$. Adapun model keseluruhan yang terbentuk adalah sebagai berikut
 
 $$
@@ -150,6 +152,7 @@ mape.dlm
 #akurasi data training
 GoF(model.dlm)
 ```
+
 Model tersebut merupakan model yang sangat baik dengan nilai MAPE yang kurang dari 10%.
 
 ## Lag Optimum
@@ -170,6 +173,7 @@ summary(model.dlm2)
 AIC(model.dlm2)
 BIC(model.dlm2)
 ```
+
 Dari hasil tersebut yang berpengaruh signifikan terhadap taraf nyata 5% hanya intercept. Adapun keseluruhan model yang terbentuk adalah
 
 $$
@@ -189,6 +193,7 @@ mape.dlm2
 #akurasi data training
 GoF(model.dlm2)
 ```
+
 Model tersebut merupakan model yang sangat baik dengan nilai MAPE yang kurang dari 10%.
 
 # MODEL AUTOREGRESSIVE
@@ -201,6 +206,7 @@ summary(model.ardl)
 AIC(model.ardl)
 BIC(model.ardl)
 ```
+
 ```{r}
 model.ardl <- ardlDlm(formula = AQI ~ no2, 
                          data = train,p = 1 , q = 1)
@@ -208,7 +214,6 @@ summary(model.ardl)
 AIC(model.ardl)
 BIC(model.ardl)
 ```
-
 
 Hasil di atas menunjukkan bahwa peubah $y_{t-1}$ berpengaruh signifikan terhadap $y_t$, sementara $x_t$ dan $x_{t-1}$ tidak berpengaruh signifikan terhadap $y_t$. Model keseluruhannya adalah sebagai berikut:
 
@@ -222,6 +227,7 @@ $$
 fore.ardl <- forecast(model = model.ardl, x=test$no2, h=14)
 fore.ardl
 ```
+
 Data di atas merupakan hasil peramalan untuk 14 periode ke depan menggunakan Model Autoregressive dengan $p=1$ dan $q=1$.
 
 ```{r}
@@ -230,6 +236,7 @@ mape.ardl
 #akurasi data training
 GoF(model.ardl)
 ```
+
 Model tersebut merupakan model yang sangat baik dengan nilai MAPE yang kurang dari 10%.
 
 ## Lag Optimum
@@ -240,7 +247,7 @@ model.ardl.opt <- ardlBoundOrders(data = data.frame(data), ic = "AIC",
                                   formula = AQI ~ no2 )
 model.ardl.opt
 min_p=c()
-for(i in 1:6){
+for(i in 1:15){
   min_p[i]=min(model.ardl.opt$Stat.table[[i]])
 }
 q_opt=which(min_p==min(min_p, na.rm = TRUE))
@@ -255,6 +262,7 @@ model.ardl2 <- ardlDlm(formula = AQI ~ no2,
                          data = train,p = 14, q = 6)
 summary(model.ardl2)
 ```
+
 Dari tabel di atas, dapat terlihat bahwa nilai AIC terendah didapat ketika $p=14$ dan $q=6$, yaitu sebesar 133.8784. Artinya, model autoregressive optimum didapat ketika $p=14$ dan $q=6$.
 
 # PEMODELAN DLM & ARDL DENGAN LIBRARY dynlm
@@ -329,6 +337,7 @@ row.names(akurasi)<- c("Koyck","DLM 1","DLM 2","Autoregressive")
 colnames(akurasi) <- c("MAPE")
 akurasi
 ```
+
 Berdasarkan nilai MAPE, model paling optimum didapat pada Model Autoregressive karena memiliki nilai MAPE yang terkecil.
 
 # PLOT
@@ -347,5 +356,5 @@ legend("topleft", c("aktual", "koyck","DLM 1","DLM 2","autoregressive"),
        lty=1, col=c("black","red","blue","orange","green"), cex=0.8)
 
 ```
-Berdasarkan plot tersebut, terlihat bahwa plot yang paling mendekati data aktualnya adalah Model Autoregressive, sehingga dapat disimpulkan model terbaik dalam hal ini adalah model Autoregressive.
 
+Berdasarkan plot tersebut, terlihat bahwa plot yang paling mendekati data aktualnya adalah Model Autoregressive, sehingga dapat disimpulkan model terbaik dalam hal ini adalah model Autoregressive.
