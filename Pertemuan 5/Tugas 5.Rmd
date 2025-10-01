@@ -1,6 +1,9 @@
-Nama : Najwa Febryla Adyta
-
-NIM : G1401231014
+---
+title: "Tugas 5 Praktikum MPDW"
+author: "Najwa Febryla Adyta"
+date: "2025-10-01"
+output: html_document
+---
 
 # Library
 
