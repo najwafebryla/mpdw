@@ -1,1 +1,251 @@
+Nama : Najwa Febryla Adyta
 
+NIM : G1401231014
+
+# Library
+
+```{r}
+library(ggplot2)
+library(tsibble)
+library(tseries)
+library(MASS)
+library(rio)
+```
+
+# Impor Data
+
+```{r}
+data <-import("https://raw.githubusercontent.com/najwafebryla/mpdw/refs/heads/main/Pertemuan%201/AI%20Financial%20Market%20Daily%20Realistic%20Synthetic.csv")
+data
+```
+
+```{r}
+View(data)
+str(data)
+dim(data)
+```
+
+```{r}
+data.ts <- ts(data$AI_Revenue_USD_Mn)
+```
+
+# Plot Time Series
+
+```{r}
+plot_data <- data.ts |> as_tsibble() |> 
+  ggplot(aes(x = index, y = value)) + geom_line() + theme_bw() +
+  xlab("Date") + ylab("USD")
+plot_data
+mean(data.ts)
+```
+
+```{r}
+lattice::densityplot(as.vector(data.ts))
+```
+
+Plot deret waktu di atas menunjukkan bahwa data stasioner dalam rataan, ditandai dengan data yang menyebar di sekitar nilai tengahnya (129) dan stasioner dalam ragam, ditandai dengan lebar pita yang cenderung sama.
+
+# Plot ACF
+
+```{r}
+acf(data.ts)
+```
+
+Berdasarkan plot ACF, terlihat bahwa plot ACF pada data tersebut cenderung *tails off* dan membentuk gelombang sinus.
+
+# Uji ADF
+
+```{r}
+tseries::adf.test(data.ts)
+```
+
+$H_0$ : Data tidak stasioner dalam rataan
+
+$H_1$ : Data stasioner dalam rataan
+
+Berdasarkan uji ADF tersebut, didapat *p-value* sebesar 0.01 yang lebih kecil dari taraf nyata 5% sehingga tolak $H_0$ dan menandakan bahwa data stasioner dalam rataan. Hal ini sesuai dengan hasil eksplorasi menggunakan plot time series dan plot ACF.
+
+# Plot Box-Cox
+
+```{r}
+index <- seq(1:131)
+
+# Box-Cox
+bc <- boxcox(
+  data.ts ~ index,
+  lambda = seq(-1, 4, 0.01)
+)
+
+# Nilai lambda optimum
+lambda <- bc$x[which.max(bc$y)]
+lambda
+
+# Selang kepercayaan 95% untuk lambda
+ci_lambda <- bc$x[bc$y > max(bc$y) - 0.5 * qchisq(0.95, 1)]
+
+# Batas bawah dan batas atas
+ci_lower <- min(ci_lambda)
+ci_upper <- max(ci_lambda)
+
+c(Batas_Bawah = ci_lower, Batas_Atas = ci_upper)
+```
+
+Grafik Box-Cox menunjukkan bahwa nilai log-likelihood relatif konstan pada berbagai λ, sehingga tidak ada λ optimum yang jelas. Hal ini mengindikasikan bahwa transformasi tidak terlalu diperlukan dan model dapat dipertahankan tanpa transformasi.
+
+# Partisi Data Deret Waktu
+
+```{r}
+library(ggplot2)
+library(tsibble)
+
+plot_data <- data.ts |> 
+  as_tsibble() |> 
+  ggplot(aes(x = index, y = value)) +
+  geom_line() +
+  theme_bw() +
+  xlab("Date") + 
+  ylab("USD") +
+  
+  # Tambahkan garis batas
+  geom_vline(xintercept = 54, linetype = "dashed", color = "red") +
+  geom_vline(xintercept = 124, linetype = "dashed", color = "blue") +
+  ggtitle("Partisi Deret Waktu:")
+
+plot_data
+```
+
+# Bagian 1: Observasi 1-54
+
+```{r}
+dt_data.ts1 <- data.ts[1:54] |> ts()
+
+#rata-rata
+mean(dt_data.ts1)
+
+#varians
+var(dt_data.ts1)
+```
+
+## Plot Time Series
+
+```{r}
+dt_data.ts1 |> as_tsibble() |> 
+  ggplot(aes(x = index, y = value)) +
+  geom_line() + theme_bw() +
+  xlab("Date") + ylab("USD")
+```
+
+Plot deret waktu di atas menunjukkan bahwa data stasioner dalam rataan, ditandai dengan data yang menyebar di sekitar nilai tengahnya (129) dan stasioner dalam ragam, ditandai dengan data berfluktuasi pada rentang yang relatif sama sepanjang waktu.
+
+## Plot ACF
+
+```{r}
+acf(dt_data.ts1)
+```
+
+Berdasarkan plot ACF, terlihat bahwa plot ACF pada data tersebut cut off.
+
+## Uji ADF
+
+```{r}
+tseries::adf.test(dt_data.ts1)
+```
+
+$H_0$ : Data tidak stasioner dalam rataan
+
+$H_1$ : Data stasioner dalam rataan
+
+Berdasarkan uji ADF tersebut, didapat *p-value* sebesar 0.01176 yang lebih kecil dari taraf nyata 5% sehingga tolak $H_0$ dan menandakan bahwa data **stasioner dalam rataan**. Hal ini sesuai dengan hasil eksplorasi menggunakan plot time series dan plot ACF.
+
+## Plot Box-Cox
+
+```{r}
+index <- seq(1, 54)
+
+# Box-Cox
+bc <- boxcox(
+  dt_data.ts1 ~ index,
+  lambda = seq(-2, 6, by = 0.01)
+)
+
+# Nilai lambda optimum (dibulatkan)
+lambda <- bc$x[which.max(bc$y)]
+lambda
+
+# Selang kepercayaan 95% untuk lambda
+ci_lambda <- bc$x[bc$y > max(bc$y) - 0.5 * qchisq(0.95, 1)]
+
+# Batas bawah dan batas atas
+ci_lower <- min(ci_lambda)
+ci_upper <- max(ci_lambda)
+
+c(Batas_Bawah = ci_lower, Batas_Atas = ci_upper)
+```
+
+Grafik Box-Cox menunjukkan bahwa nilai log-likelihood relatif konstan pada berbagai λ, sehingga tidak ada λ optimum yang jelas. Hal ini mengindikasikan bahwa transformasi tidak terlalu diperlukan dan model dapat dipertahankan tanpa transformasi.
+
+# Bagian 2: Observasi 1-124
+
+```{r}
+dt_data.ts2 <- data.ts[1:124] |> ts()
+mean(dt_data.ts2)
+var(dt_data.ts2)
+```
+
+## Plot Time Series
+
+```{r}
+dt_data.ts2 |> as_tsibble() |> 
+  ggplot(aes(x = index, y = value)) +
+  geom_line() + theme_bw() +
+  xlab("Date") + ylab("USD")
+```
+
+Plot deret waktu di atas menunjukkan bahwa data stasioner dalam rataan, ditandai dengan data yang menyebar di sekitar nilai tengahnya (129) dan stasioner dalam ragam, ditandai dengan data berfluktuasi pada rentang yang relatif sama sepanjang waktu.
+
+## Plot ACF
+
+```{r}
+acf(dt_data.ts2)
+```
+
+Berdasarkan plot ACF, terlihat bahwa plot ACF pada data tersebut cenderung *tails off* dan membentuk gelombang sinus.
+
+## Uji ADF
+
+```{r}
+adf.test(dt_data.ts2)
+```
+
+$H_0$ : Data tidak stasioner dalam rataan
+
+$H_1$ : Data stasioner dalam rataan
+
+Berdasarkan uji ADF tersebut, didapat *p-value* sebesar 0.01 yang lebih kecil dari taraf nyata 5% sehingga tolak $H_0$ dan menandakan bahwa **data stasioner dalam rataan**. Hal ini sesuai dengan hasil eksplorasi menggunakan plot time series dan plot ACF.
+
+## Plot Box-Cox
+
+```{r}
+index <- seq(1, 124)
+
+# Box-Cox
+bc <- boxcox(
+  dt_data.ts2 ~ index,
+  lambda = seq(0, 6, by = 0.01)
+)
+
+# Nilai lambda optimum
+lambda <- bc$x[which.max(bc$y)]
+lambda
+
+# Selang kepercayaan 95% untuk lambda
+ci_lambda <- bc$x[bc$y > max(bc$y) - 0.5 * qchisq(0.95, 1)]
+
+# Batas bawah dan batas atas
+ci_lower <- min(ci_lambda)
+ci_upper <- max(ci_lambda)
+
+c(Batas_Bawah = ci_lower, Batas_Atas = ci_upper)
+```
+
+Grafik Box-Cox menunjukkan bahwa nilai log-likelihood relatif konstan pada berbagai λ, sehingga tidak ada λ optimum yang jelas. Hal ini mengindikasikan bahwa transformasi tidak terlalu diperlukan dan model dapat dipertahankan tanpa transformasi.
